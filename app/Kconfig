@@ -396,13 +396,8 @@ endif
 #Display/LED Options
 endmenu
 
-menu "Mouse Options"
+rsource "src/mouse/Kconfig"
 
-config ZMK_MOUSE
-    bool "Enable ZMK mouse emulation"
-
-#Mouse Options
-endmenu
 
 menu "Power Management"
 
