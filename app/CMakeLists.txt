@@ -45,6 +45,7 @@ target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_SOFT_OFF app PRIVATE src/behaviors/beha
 if ((NOT CONFIG_ZMK_SPLIT) OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
   target_sources(app PRIVATE src/hid.c)
   target_sources_ifdef(CONFIG_ZMK_MOUSE app PRIVATE src/mouse.c)
+  target_sources_ifdef(CONFIG_ZMK_MOUSE app PRIVATE src/mouse/input_listener.c)
   target_sources(app PRIVATE src/behaviors/behavior_key_press.c)
   target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_KEY_TOGGLE app PRIVATE src/behaviors/behavior_key_toggle.c)
   target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_HOLD_TAP app PRIVATE src/behaviors/behavior_hold_tap.c)
@@ -105,6 +106,7 @@ target_sources(app PRIVATE src/main.c)
 
 add_subdirectory(src/display/)
 add_subdirectory_ifdef(CONFIG_SETTINGS src/settings/)
+add_subdirectory(src/mouse/)
 
 if (CONFIG_ZMK_STUDIO_RPC)
   # For some reason this is failing if run from a different sub-file.
