@@ -40,9 +40,6 @@ struct behavior_sticky_key_config {
 
 struct active_sticky_key {
     uint32_t position;
-#if IS_ENABLED(CONFIG_ZMK_SPLIT)
-    uint8_t source;
-#endif
     uint32_t param1;
     uint32_t param2;
     const struct behavior_sticky_key_config *config;
@@ -58,8 +55,8 @@ struct active_sticky_key {
 
 struct active_sticky_key active_sticky_keys[ZMK_BHV_STICKY_KEY_MAX_HELD] = {};
 
-static struct active_sticky_key *store_sticky_key(struct zmk_behavior_binding_event *event,
-                                                  uint32_t param1, uint32_t param2,
+static struct active_sticky_key *store_sticky_key(uint32_t position, uint32_t param1,
+                                                  uint32_t param2,
                                                   const struct behavior_sticky_key_config *config) {
     for (int i = 0; i < ZMK_BHV_STICKY_KEY_MAX_HELD; i++) {
         struct active_sticky_key *const sticky_key = &active_sticky_keys[i];
@@ -67,10 +64,7 @@ static struct active_sticky_key *store_sticky_key(struct zmk_behavior_binding_ev
             sticky_key->timer_cancelled) {
             continue;
         }
-        sticky_key->position = event->position;
-#if IS_ENABLED(CONFIG_ZMK_SPLIT)
-        sticky_key->source = event->source;
-#endif
+        sticky_key->position = position;
         sticky_key->param1 = param1;
         sticky_key->param2 = param2;
         sticky_key->config = config;
@@ -107,11 +101,8 @@ static inline int press_sticky_key_behavior(struct active_sticky_key *sticky_key
     struct zmk_behavior_binding_event event = {
         .position = sticky_key->position,
         .timestamp = timestamp,
-#if IS_ENABLED(CONFIG_ZMK_SPLIT)
-        .source = sticky_key->source,
-#endif
     };
-    return zmk_behavior_invoke_binding(&binding, event, true);
+    return behavior_keymap_binding_pressed(&binding, event);
 }
 
 static inline int release_sticky_key_behavior(struct active_sticky_key *sticky_key,
@@ -124,13 +115,10 @@ static inline int release_sticky_key_behavior(struct active_sticky_key *sticky_k
     struct zmk_behavior_binding_event event = {
         .position = sticky_key->position,
         .timestamp = timestamp,
-#if IS_ENABLED(CONFIG_ZMK_SPLIT)
-        .source = sticky_key->source,
-#endif
     };
 
     clear_sticky_key(sticky_key);
-    return zmk_behavior_invoke_binding(&binding, event, false);
+    return behavior_keymap_binding_released(&binding, event);
 }
 
 static inline void on_sticky_key_timeout(struct active_sticky_key *sticky_key) {
@@ -161,7 +149,7 @@ static int on_sticky_key_binding_pressed(struct zmk_behavior_binding *binding,
         stop_timer(sticky_key);
         release_sticky_key_behavior(sticky_key, event.timestamp);
     }
-    sticky_key = store_sticky_key(&event, binding->param1, binding->param2, cfg);
+    sticky_key = store_sticky_key(event.position, binding->param1, binding->param2, cfg);
     if (sticky_key == NULL) {
         LOG_ERR("unable to store sticky key, did you press more than %d sticky_key?",
                 ZMK_BHV_STICKY_KEY_MAX_HELD);

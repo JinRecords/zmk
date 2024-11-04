@@ -5,11 +5,6 @@ const TREE_SITTER_WASM_URL = new URL(
   import.meta.url
 );
 
-const TREE_SITTER_DEVICETREE_WASM_URL = new URL(
-  "/node_modules/tree-sitter-devicetree/tree-sitter-devicetree.wasm",
-  import.meta.url
-);
-
 export let Devicetree: Parser.Language;
 
 export async function initParser() {
@@ -22,7 +17,7 @@ export async function initParser() {
       return prefix + path;
     },
   });
-  Devicetree = await Parser.Language.load(TREE_SITTER_DEVICETREE_WASM_URL.href);
+  Devicetree = await Parser.Language.load("/tree-sitter-devicetree.wasm");
 }
 
 export function createParser() {

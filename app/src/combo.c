@@ -292,26 +292,20 @@ static inline int press_combo_behavior(struct combo_cfg *combo, int32_t timestam
     struct zmk_behavior_binding_event event = {
         .position = combo->virtual_key_position,
         .timestamp = timestamp,
-#if IS_ENABLED(CONFIG_ZMK_SPLIT)
-        .source = ZMK_POSITION_STATE_CHANGE_SOURCE_LOCAL,
-#endif
     };
 
     last_combo_timestamp = timestamp;
 
-    return zmk_behavior_invoke_binding(&combo->behavior, event, true);
+    return behavior_keymap_binding_pressed(&combo->behavior, event);
 }
 
 static inline int release_combo_behavior(struct combo_cfg *combo, int32_t timestamp) {
     struct zmk_behavior_binding_event event = {
         .position = combo->virtual_key_position,
         .timestamp = timestamp,
-#if IS_ENABLED(CONFIG_ZMK_SPLIT)
-        .source = ZMK_POSITION_STATE_CHANGE_SOURCE_LOCAL,
-#endif
     };
 
-    return zmk_behavior_invoke_binding(&combo->behavior, event, false);
+    return behavior_keymap_binding_released(&combo->behavior, event);
 }
 
 static void move_pressed_keys_to_active_combo(struct active_combo *active_combo) {
