@@ -15,9 +15,6 @@
 #include <dt-bindings/zmk/hid_usage_pages.h>
 #include <zmk/usb_hid.h>
 #include <zmk/hog.h>
-#include <zmk/mouse/hid.h>
-#include <zmk/mouse/hog.h>
-#include <zmk/mouse/usb_hid.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/usb_conn_state_changed.h>
@@ -119,9 +116,7 @@ int zmk_endpoints_toggle_transport(void) {
     return zmk_endpoints_select_transport(new_transport);
 }
 
-struct zmk_endpoint_instance zmk_endpoints_selected(void) {
-    return current_instance;
-}
+struct zmk_endpoint_instance zmk_endpoints_selected(void) { return current_instance; }
 
 static int send_keyboard_report(void) {
     switch (current_instance.transport) {
@@ -191,27 +186,12 @@ static int send_consumer_report(void) {
     return -ENOTSUP;
 }
 
-int zmk_endpoints_send_report(uint16_t usage_page) {
-
-    LOG_DBG("usage page 0x%02X", usage_page);
-    switch (usage_page) {
-    case HID_USAGE_KEY:
-        return send_keyboard_report();
-
-    case HID_USAGE_CONSUMER:
-        return send_consumer_report();
-    }
-
-    LOG_ERR("Unsupported usage page %d", usage_page);
-    return -ENOTSUP;
-}
-
-#if IS_ENABLED(CONFIG_ZMK_MOUSE)
-int zmk_endpoints_send_mouse_report() {
+#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+static int send_generic_desktop_report(void) {
     switch (current_instance.transport) {
     case ZMK_TRANSPORT_USB: {
 #if IS_ENABLED(CONFIG_ZMK_USB)
-        int err = zmk_mouse_usb_hid_send_mouse_report();
+        int err = zmk_usb_hid_send_generic_desktop_report();
         if (err) {
             LOG_ERR("FAILED TO SEND OVER USB: %d", err);
         }
@@ -224,8 +204,65 @@ int zmk_endpoints_send_mouse_report() {
 
     case ZMK_TRANSPORT_BLE: {
 #if IS_ENABLED(CONFIG_ZMK_BLE)
-        struct zmk_hid_mouse_report *mouse_report = zmk_mouse_hid_get_mouse_report();
-        int err = zmk_mouse_hog_send_mouse_report(&mouse_report->body);
+        struct zmk_hid_generic_desktop_report *generic_desktop_report =
+            zmk_hid_get_generic_desktop_report();
+        int err = zmk_hog_send_generic_desktop_report(&generic_desktop_report->body);
+        if (err) {
+            LOG_ERR("FAILED TO SEND OVER HOG: %d", err);
+        }
+        return err;
+#else
+        LOG_ERR("BLE HOG endpoint is not supported");
+        return -ENOTSUP;
+#endif /* IS_ENABLED(CONFIG_ZMK_BLE) */
+    }
+    }
+
+    LOG_ERR("Unhandled endpoint transport %d", current_instance.transport);
+    return -ENOTSUP;
+}
+#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+
+int zmk_endpoints_send_report(uint16_t usage_page) {
+
+    LOG_DBG("usage page 0x%02X", usage_page);
+    switch (usage_page) {
+    case HID_USAGE_KEY:
+        return send_keyboard_report();
+
+    case HID_USAGE_CONSUMER:
+        return send_consumer_report();
+
+#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+    case HID_USAGE_GD:
+        return send_generic_desktop_report();
+#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+    }
+
+    LOG_ERR("Unsupported usage page %d", usage_page);
+    return -ENOTSUP;
+}
+
+#if IS_ENABLED(CONFIG_ZMK_MOUSE)
+int zmk_endpoints_send_mouse_report() {
+    switch (current_instance.transport) {
+    case ZMK_TRANSPORT_USB: {
+#if IS_ENABLED(CONFIG_ZMK_USB)
+        int err = zmk_usb_hid_send_mouse_report();
+        if (err) {
+            LOG_ERR("FAILED TO SEND OVER USB: %d", err);
+        }
+        return err;
+#else
+        LOG_ERR("USB endpoint is not supported");
+        return -ENOTSUP;
+#endif /* IS_ENABLED(CONFIG_ZMK_USB) */
+    }
+
+    case ZMK_TRANSPORT_BLE: {
+#if IS_ENABLED(CONFIG_ZMK_BLE)
+        struct zmk_hid_mouse_report *mouse_report = zmk_hid_get_mouse_report();
+        int err = zmk_hog_send_mouse_report(&mouse_report->body);
         if (err) {
             LOG_ERR("FAILED TO SEND OVER HOG: %d", err);
         }
@@ -340,6 +377,9 @@ void zmk_endpoints_clear_current(void) {
 #if IS_ENABLED(CONFIG_ZMK_MOUSE)
     zmk_hid_mouse_clear();
 #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+    zmk_hid_generic_desktop_clear();
+#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
 
     zmk_endpoints_send_report(HID_USAGE_KEY);
     zmk_endpoints_send_report(HID_USAGE_CONSUMER);

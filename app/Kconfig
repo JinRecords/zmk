@@ -119,6 +119,16 @@ config ZMK_HID_SEPARATE_MOD_RELEASE_REPORT
       Send a separate release event for the modifiers, to make sure the release
       of the modifier doesn't get recognized before the actual key's release event.
 
+config ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC
+    bool "Basic Generic Desktop HID Usage Support"
+    help
+      Enable only 15 Generic Desktop ID values, "Power Down", "Sleep", "Wake up", ...,
+      "Warm Restart" to be sent to hosts.
+
+config ZMK_BLE_GENERIC_DESKTOP_REPORT_QUEUE_SIZE
+    int "Max number of Generic Desktop HID reports to queue for sending over BLE"
+    default 3
+
 menu "Output Types"
 
 config ZMK_USB
@@ -153,6 +163,7 @@ menuconfig ZMK_BLE
     select BT_SMP_APP_PAIRING_ACCEPT
     select BT_PERIPHERAL
     select BT_DIS
+    imply BT_DEVICE_NAME_DYNAMIC
     imply BT_SETTINGS if !ARCH_POSIX
     imply SETTINGS if !ARCH_POSIX
     imply ZMK_BATTERY_REPORTING if !ARCH_POSIX
@@ -257,6 +268,28 @@ rsource "src/split/Kconfig"
 
 #Basic Keyboard Setup
 endmenu
+
+menu "Keymaps"
+
+config ZMK_KEYMAP_LAYER_REORDERING
+    bool "Layer Reordering Support"
+
+config ZMK_KEYMAP_SETTINGS_STORAGE
+    bool "Settings Save/Load"
+    depends on SETTINGS
+    depends on ZMK_BEHAVIOR_LOCAL_IDS
+
+if ZMK_KEYMAP_SETTINGS_STORAGE
+
+config ZMK_KEYMAP_LAYER_NAME_MAX_LEN
+    int "Max Layer Name Length"
+    default 20
+
+endif
+
+endmenu # Keymaps
+
+rsource "src/studio/Kconfig"
 
 menu "Display/LED Options"
 
@@ -479,12 +512,6 @@ config ZMK_MACRO_DEFAULT_WAIT_MS
 config ZMK_MACRO_DEFAULT_TAP_MS
     int "Default time to wait (in milliseconds) between the press and release events of a tapped behavior in macros"
     default 30
-
-DT_COMPAT_ZMK_BEHAVIOR_TRI_STATE := zmk,behavior-tri-state
-
-config ZMK_BEHAVIOR_TRI_STATE
-        bool
-        default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TRI_STATE))
 
 endmenu
 
